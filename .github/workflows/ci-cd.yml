@@ -27,7 +27,7 @@ jobs:
       run: dotnet build TodoSaaS.sln --configuration Release --no-restore
 
     - name: Run Unit & Integration Tests
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test TodoSaaS.sln --configuration Release --no-build --verbosity normal
 
     - name: Security Vulnerability Scan (Trivy)
       uses: aquasecurity/trivy-action@master
@@ -41,10 +41,21 @@ jobs:
     needs: build-and-test
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
+
+    - name: Setup .NET 9 SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Publish Binaries
+      run: dotnet publish -c Release -o TodoSaaS.Api/publish TodoSaaS.Api/TodoSaaS.Api.csproj
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -56,6 +67,9 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Lowercase Repository Name
+      run: echo "IMAGE_REPOSITORY=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
     - name: Build and Push Docker Image
       uses: docker/build-push-action@v5
       with:
@@ -63,7 +77,7 @@ jobs:
         file: ./TodoSaaS.Api/Dockerfile
         push: true
         tags: |
-          ghcr.io/${{ github.repository }}/todosaas-api:latest
-          ghcr.io/${{ github.repository }}/todosaas-api:${{ github.sha }}
+          ghcr.io/${{ env.IMAGE_REPOSITORY }}/todosaas-api:latest
+          ghcr.io/${{ env.IMAGE_REPOSITORY }}/todosaas-api:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
