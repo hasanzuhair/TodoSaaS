@@ -1,0 +1,25 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+publish/
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+
+# Visual Studio / Rider / VS Code
+.vs/
+.vscode/
+.idea/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Test results
+TestResults/

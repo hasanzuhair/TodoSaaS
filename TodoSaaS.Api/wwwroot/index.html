@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TodoSaaS - Production-Grade .NET 9 SaaS Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: rgba(23, 31, 51, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #8b5cf6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at top center, #1e1b4b 0%, #0b0f19 50%, #05070d 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      border-bottom: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      background: rgba(11, 15, 25, 0.8);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 1rem 2rem;
+    }
+
+    .nav-container {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: #fff;
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .version-tag {
+      font-size: 0.75rem;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #60a5fa;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+
+    .tenant-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 0.4rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--card-border);
+    }
+
+    .tenant-select {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .tenant-select option {
+      background: #171f33;
+      color: #fff;
+    }
+
+    .plan-badge {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .quick-links {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .link-btn {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.8rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--card-border);
+      background: rgba(255, 255, 255, 0.02);
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .link-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .link-btn.highlight {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: rgba(59, 130, 246, 0.4);
+      color: #93c5fd;
+    }
+
+    .link-btn.highlight:hover {
+      background: rgba(59, 130, 246, 0.3);
+    }
+
+    main {
+      max-width: 1300px;
+      width: 100%;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 2rem;
+      flex: 1;
+    }
+
+    @media (max-width: 1024px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(16px);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+
+    input[type="text"], input[type="datetime-local"], textarea {
+      width: 100%;
+      background: rgba(11, 15, 25, 0.8);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 0.65rem 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .btn {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.875rem;
+      padding: 0.65rem 1.25rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .btn:hover {
+      opacity: 0.92;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .filter-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0.25rem;
+      background: rgba(11, 15, 25, 0.8);
+      padding: 0.25rem;
+      border-radius: 8px;
+      border: 1px solid var(--card-border);
+    }
+
+    .tab {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 0.4rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      background: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+      font-weight: 600;
+    }
+
+    .todo-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .todo-card {
+      background: rgba(11, 15, 25, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      transition: border-color 0.2s, transform 0.1s;
+    }
+
+    .todo-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .todo-card.completed {
+      opacity: 0.65;
+    }
+
+    .todo-card.completed .todo-title {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .custom-checkbox {
+      width: 20px;
+      height: 20px;
+      margin-top: 3px;
+      cursor: pointer;
+      accent-color: #3b82f6;
+    }
+
+    .todo-content {
+      flex: 1;
+    }
+
+    .todo-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      color: var(--text);
+    }
+
+    .todo-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      line-height: 1.4;
+    }
+
+    .todo-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      font-size: 0.75rem;
+    }
+
+    .meta-tag {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .meta-tag.attachment {
+      color: #60a5fa;
+      text-decoration: none;
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .meta-tag.attachment:hover {
+      text-decoration: underline;
+    }
+
+    .todo-actions {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+
+    .icon-btn.danger:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+
+    .icon-btn.reminder:hover {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #fde68a;
+    }
+
+    /* Sidebar Systems Status */
+    .system-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 0.825rem;
+    }
+
+    .system-item:last-child {
+      border-bottom: none;
+    }
+
+    .system-name {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .system-link {
+      color: #60a5fa;
+      text-decoration: none;
+      font-size: 0.75rem;
+    }
+
+    .system-link:hover {
+      text-decoration: underline;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      display: none;
+      z-index: 1000;
+      font-size: 0.875rem;
+    }
+
+    .toast.show {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="nav-container">
+      <div class="brand">
+        <div class="logo-badge">✓</div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <h1 class="brand-title">TodoSaaS</h1>
+            <span class="version-tag">.NET 9 Minimal API</span>
+          </div>
+          <p style="font-size: 0.725rem; color: var(--text-muted);">16 Production Systems Integrated</p>
+        </div>
+      </div>
+
+      <div class="tenant-bar">
+        <span style="font-size: 0.75rem; color: var(--text-muted);">Tenant:</span>
+        <select id="tenantSelect" class="tenant-select" onchange="switchTenant(this.value)">
+          <option value="11111111-1111-1111-1111-111111111111">Acme Corp</option>
+        </select>
+        <span id="tenantPlan" class="plan-badge">PRO</span>
+        <button onclick="createNewTenantModal()" class="icon-btn" title="Add New Tenant" style="width:24px;height:24px;font-size:0.75rem;">+</button>
+      </div>
+
+      <div class="quick-links">
+        <a href="/scalar/v1" target="_blank" class="link-btn highlight">📚 Scalar API</a>
+        <a href="http://localhost:8085/ui/console" target="_blank" class="link-btn highlight">🔐 ZITADEL Auth</a>
+        <a href="/healthz/ready" target="_blank" class="link-btn">🩺 Deep Health</a>
+        <a href="/openapi/v1.json" target="_blank" class="link-btn">📄 OpenAPI</a>
+        <a href="http://localhost:8025" target="_blank" class="link-btn">✉️ Mailpit</a>
+        <a href="http://localhost:15672" target="_blank" class="link-btn">🐰 RabbitMQ</a>
+        <a href="http://localhost:3000" target="_blank" class="link-btn">📊 Grafana</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <!-- Create Todo Card -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">📝 Create Task</h2>
+          <span style="font-size:0.75rem; color:var(--text-muted);">Auto-isolated by Tenant</span>
+        </div>
+        <form id="todoForm" onsubmit="createTodo(event)">
+          <div class="form-group">
+            <label for="todoTitle">Title *</label>
+            <input type="text" id="todoTitle" required placeholder="e.g. Deploy Kubernetes cluster to production">
+          </div>
+          <div class="form-group">
+            <label for="todoDesc">Description</label>
+            <textarea id="todoDesc" rows="2" placeholder="Task details, acceptance criteria, or notes..."></textarea>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label for="todoDueDate">Due Date</label>
+              <input type="datetime-local" id="todoDueDate">
+            </div>
+            <div class="form-group">
+              <label for="todoFile">Attachment (MinIO / S3)</label>
+              <input type="file" id="todoFile" style="font-size: 0.8rem; padding: 0.4rem 0;">
+            </div>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
+            <button type="submit" class="btn" id="createBtn">Add Task</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Todo List Card -->
+      <div class="card">
+        <div class="filter-bar">
+          <div class="tabs">
+            <button class="tab active" onclick="setFilter('all', this)">All</button>
+            <button class="tab" onclick="setFilter('active', this)">Active</button>
+            <button class="tab" onclick="setFilter('completed', this)">Completed</button>
+          </div>
+          <input type="text" id="searchInput" placeholder="Search tasks..." style="width: 220px; font-size: 0.8rem;" oninput="loadTodos()">
+        </div>
+
+        <div id="todoContainer" class="todo-list">
+          <p style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading tasks...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sidebar: 16 Systems & Billing -->
+    <aside>
+      <!-- Tenant Plan & Billing -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">💳 Workspace Plan & Quota</h3>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+          Plan: <strong id="sidebarPlanName" style="color: #34d399;">Free Tier</strong>
+        </p>
+
+        <!-- Quota Progress Bar -->
+        <div style="margin: 0.75rem 0;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">
+            <span>Tasks Quota:</span>
+            <span id="quotaText">0 / 25 Tasks</span>
+          </div>
+          <div style="background: rgba(255, 255, 255, 0.1); border-radius: 9999px; height: 8px; overflow: hidden;">
+            <div id="quotaBar" style="width: 0%; height: 100%; background: #3b82f6; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
+          <button onclick="instantUpgrade()" class="btn" style="width: 100%; background: linear-gradient(135deg, #10b981, #059669);">
+            ⚡ Instant Upgrade to Pro
+          </button>
+          <button onclick="upgradeStripePlan()" class="btn" style="width: 100%; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4);">
+            💳 Stripe Checkout / Portal
+          </button>
+          <button onclick="exportWorkspaceData()" class="btn" style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border); font-size: 0.75rem;">
+            📥 Export Workspace (GDPR JSON)
+          </button>
+        </div>
+      </div>
+
+      <!-- 16 Production Systems Overview -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">⚙️ 16 Production Systems</h3>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 1. DNS / CDN Edge</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);">Cloudflare</span>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 2. Reverse Proxy</span>
+          <a class="system-link" href="http://localhost:80" target="_blank">Caddy :80</a>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 3. API Gateway</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);">ASP.NET Limiter</span>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 4. Container</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);">Chiseled Noble</span>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 5. Orchestration</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);">Docker Compose / K8s</span>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 6. Database</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);">PostgreSQL 16 EF</span>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 7. Caching</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);">Redis 7</span>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 8. Message Queue</span>
+          <a class="system-link" href="http://localhost:15672" target="_blank">RabbitMQ</a>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 9. Object Storage</span>
+          <a class="system-link" href="http://localhost:9001" target="_blank">MinIO S3</a>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 10. CI / CD</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);">GitHub Actions</span>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 11. Secrets</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);">Infisical / Env</span>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 12. Identity & Auth</span>
+          <a class="system-link" href="http://localhost:8085/ui/console" target="_blank">ZITADEL :8085</a>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 13. Observability</span>
+          <a class="system-link" href="http://localhost:9090" target="_blank">Prometheus :9090</a>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 14. Error Tracking</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);">Sentry SDK</span>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 15. Email</span>
+          <a class="system-link" href="http://localhost:8025" target="_blank">Mailpit :8025</a>
+        </div>
+        <div class="system-item">
+          <span class="system-name"><span class="status-dot"></span> 16. Subscriptions</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);">Stripe.net</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast">Action completed successfully</div>
+
+  <script>
+    let currentTenantId = '11111111-1111-1111-1111-111111111111';
+    let currentFilter = 'all';
+    let authToken = null;
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+
+    async function ensureAuth() {
+      try {
+        const res = await fetch('/api/auth/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenantId: currentTenantId, email: 'admin@todosaas.local' })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          authToken = data.token;
+        }
+      } catch (e) {
+        console.warn('Auth token issuance failed:', e);
+      }
+    }
+
+    function authHeaders(extra = {}) {
+      const headers = { ...extra, 'X-Tenant-ID': currentTenantId };
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      return headers;
+    }
+
+    async function loadTenants() {
+      try {
+        await ensureAuth();
+        const res = await fetch('/api/tenants');
+        if (res.ok) {
+          const tenants = await res.json();
+          const sel = document.getElementById('tenantSelect');
+          sel.innerHTML = '';
+          tenants.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.innerText = `${t.name} (${t.plan})`;
+            if (t.id === currentTenantId) opt.selected = true;
+            sel.appendChild(opt);
+          });
+        }
+      } catch (e) {
+        console.error('Error loading tenants:', e);
+      }
+      await loadTenantInfo();
+    }
+
+    async function loadTenantInfo() {
+      try {
+        await ensureAuth();
+        const res = await fetch('/api/tenants/current', {
+          headers: authHeaders()
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const plan = data.plan || 'Free';
+          const stats = data.stats || {};
+          document.getElementById('tenantPlan').innerText = plan.toUpperCase();
+          document.getElementById('sidebarPlanName').innerText = plan + ' Tier';
+
+          const quotaText = document.getElementById('quotaText');
+          const quotaBar = document.getElementById('quotaBar');
+          if (quotaText && quotaBar) {
+            if (stats.maxTodos > 0) {
+              quotaText.innerText = `${stats.totalTodos} / ${stats.maxTodos} Tasks (${stats.quotaUsedPercent}%)`;
+              quotaBar.style.width = `${Math.min(100, stats.quotaUsedPercent)}%`;
+              quotaBar.style.background = stats.isQuotaExceeded ? '#ef4444' : '#3b82f6';
+            } else {
+              quotaText.innerText = `${stats.totalTodos} Tasks (Unlimited PRO)`;
+              quotaBar.style.width = '100%';
+              quotaBar.style.background = '#10b981';
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function switchTenant(tenantId) {
+      currentTenantId = tenantId;
+      await ensureAuth();
+      await loadTenantInfo();
+      await loadTodos();
+      showToast('Switched tenant context & signed JWT');
+    }
+
+    async function createNewTenantModal() {
+      const name = prompt('Enter new Organization / Team Workspace Name:');
+      if (!name) return;
+      try {
+        const res = await fetch('/api/tenants/onboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            organizationName: name, 
+            adminEmail: `admin@${name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'workspace'}.com` 
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          currentTenantId = data.tenant.id;
+          authToken = data.token;
+          localStorage.setItem('todosaas_jwt', authToken);
+          showToast('🚀 Workspace onboarded with starter data!');
+          await loadTenants();
+          await loadTenantInfo();
+          await loadTodos();
+        } else {
+          alert('Failed to onboard workspace: ' + res.status);
+        }
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    function setFilter(filter, el) {
+      currentFilter = filter;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      loadTodos();
+    }
+
+    async function loadTodos() {
+      const container = document.getElementById('todoContainer');
+      const search = document.getElementById('searchInput').value;
+
+      let url = '/api/todos?';
+      if (currentFilter === 'active') url += 'completed=false&';
+      if (currentFilter === 'completed') url += 'completed=true&';
+      if (search) url += `search=${encodeURIComponent(search)}&`;
+
+      try {
+        await ensureAuth();
+        const res = await fetch(url, {
+          headers: authHeaders()
+        });
+
+        if (!res.ok) {
+          container.innerHTML = `<p style="text-align:center;color:var(--danger);">Error loading todos (${res.status})</p>`;
+          return;
+        }
+
+        const cacheHeader = res.headers.get('X-Cache') || 'MISS';
+        const todos = await res.json();
+        if (todos.length === 0) {
+          container.innerHTML = `<p style="text-align:center;color:var(--text-muted);padding:2rem;">No tasks found. Create one above! <span class="meta-tag" style="margin-left:8px;">Redis Cache: ${cacheHeader}</span></p>`;
+          return;
+        }
+
+        const cacheBadge = `<div style="text-align:right;margin-bottom:0.75rem;"><span class="meta-tag" style="background:${cacheHeader === 'HIT' ? 'rgba(16,185,129,0.2)' : 'rgba(59,130,246,0.2)'};color:${cacheHeader === 'HIT' ? '#34d399' : '#60a5fa'}">⚡ Redis Cache: ${cacheHeader}</span></div>`;
+
+        container.innerHTML = cacheBadge + todos.map(t => {
+          const due = t.dueDateUtc ? new Date(t.dueDateUtc).toLocaleString() : null;
+          return `
+            <div class="todo-card ${t.isCompleted ? 'completed' : ''}">
+              <input type="checkbox" class="custom-checkbox" ${t.isCompleted ? 'checked' : ''} onchange="toggleComplete('${t.id}', this.checked)">
+              <div class="todo-content">
+                <div class="todo-title">${escapeHtml(t.title)}</div>
+                ${t.description ? `<div class="todo-desc">${escapeHtml(t.description)}</div>` : ''}
+                <div class="todo-meta">
+                  ${due ? `<span class="meta-tag">📅 Due: ${due}</span>` : ''}
+                  ${t.attachmentUrl ? `<a href="${t.attachmentUrl}" target="_blank" class="meta-tag attachment">📎 Attachment</a>` : ''}
+                  <span class="meta-tag">Created: ${new Date(t.createdAtUtc).toLocaleDateString()}</span>
+                </div>
+              </div>
+              <div class="todo-actions">
+                <button class="icon-btn reminder" title="Send Email Reminder via RabbitMQ" onclick="sendReminder('${t.id}', '${escapeHtml(t.title)}')">🔔</button>
+                <button class="icon-btn danger" title="Delete Task" onclick="deleteTodo('${t.id}')">🗑️</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        container.innerHTML = `<p style="text-align:center;color:var(--danger);">${e.message}</p>`;
+      }
+    }
+
+    async function createTodo(e) {
+      e.preventDefault();
+      const title = document.getElementById('todoTitle').value.trim();
+      const desc = document.getElementById('todoDesc').value.trim();
+      const due = document.getElementById('todoDueDate').value;
+      const fileInput = document.getElementById('todoFile');
+      const createBtn = document.getElementById('createBtn');
+
+      createBtn.disabled = true;
+      createBtn.innerText = 'Creating...';
+
+      let attachmentUrl = null;
+
+      try {
+        await ensureAuth();
+        if (fileInput.files.length > 0) {
+          const file = fileInput.files[0];
+          const formData = new FormData();
+          formData.append('file', file);
+          const uploadRes = await fetch('/api/storage/upload', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            body: formData
+          });
+          if (uploadRes.ok) {
+            const data = await uploadRes.json();
+            attachmentUrl = data.downloadUrl;
+          }
+        }
+
+        const payload = {
+          title,
+          description: desc || null,
+          dueDateUtc: due ? new Date(due).toISOString() : null,
+          attachmentUrl
+        };
+
+        const res = await fetch('/api/todos', {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          document.getElementById('todoForm').reset();
+          await loadTenantInfo();
+          await loadTodos();
+          showToast('Task created & atomic Outbox event staged!');
+        } else if (res.status === 402) {
+          const errData = await res.json();
+          alert(`⚠️ Plan Quota Exceeded!\n\n${errData.message || 'Free tier limit of 25 tasks reached.'}\n\nPlease click "Instant Upgrade to Pro" in the sidebar.`);
+        } else if (res.status === 429) {
+          const errData = await res.json();
+          alert(`⏳ Rate Limit Exceeded: ${errData.message || 'Please wait a minute before making more requests.'}`);
+        } else {
+          alert('Failed to create task (' + res.status + ')');
+        }
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        createBtn.disabled = false;
+        createBtn.innerText = 'Add Task';
+      }
+    }
+
+    async function toggleComplete(id, completed) {
+      try {
+        await ensureAuth();
+        if (completed) {
+          await fetch(`/api/todos/${id}/complete`, {
+            method: 'POST',
+            headers: authHeaders()
+          });
+          showToast('Task completed & atomic event published!');
+        } else {
+          await fetch(`/api/todos/${id}`, {
+            method: 'PUT',
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ isCompleted: false })
+          });
+          showToast('Task updated!');
+        }
+        await loadTodos();
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    async function sendReminder(id, title) {
+      const email = prompt(`Send asynchronous due reminder for "${title}" to email:`, 'developer@example.com');
+      if (!email) return;
+
+      try {
+        await ensureAuth();
+        const res = await fetch(`/api/todos/${id}/reminder?email=${encodeURIComponent(email)}`, {
+          method: 'POST',
+          headers: authHeaders()
+        });
+        if (res.ok) {
+          showToast('Reminder queued via Transactional Outbox! Check Mailpit at port 8025.');
+        }
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    async function deleteTodo(id) {
+      if (!confirm('Are you sure you want to delete this task?')) return;
+      try {
+        await ensureAuth();
+        const res = await fetch(`/api/todos/${id}`, {
+          method: 'DELETE',
+          headers: authHeaders()
+        });
+        if (res.ok) {
+          showToast('Task deleted');
+          await loadTodos();
+        }
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    async function upgradeStripePlan() {
+      const email = prompt('Enter billing email address:', 'billing@example.com');
+      if (!email) return;
+
+      try {
+        await ensureAuth();
+        const res = await fetch('/api/billing/checkout', {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ email })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.checkoutUrl) {
+            window.open(data.checkoutUrl, '_blank');
+          } else {
+            showToast('Stripe checkout session created.');
+          }
+        }
+      } catch (e) {
+        alert('Stripe simulation note: Mock API key in dev. Error: ' + e.message);
+      }
+    }
+
+    async function instantUpgrade() {
+      try {
+        await ensureAuth();
+        const res = await fetch('/api/billing/simulate-upgrade', {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ plan: 'Pro' })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          showToast('🎉 Upgraded to PRO Tier! Unlimited tasks unlocked.');
+          await loadTenantInfo();
+          await loadTenants();
+        } else {
+          alert('Upgrade failed: ' + res.status);
+        }
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    async function exportWorkspaceData() {
+      try {
+        await ensureAuth();
+        const res = await fetch('/api/tenants/export', {
+          headers: authHeaders()
+        });
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `todosaas-export-${currentTenantId}.json`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          showToast('📥 GDPR Data Export downloaded!');
+        } else {
+          alert('Export failed: ' + res.status);
+        }
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Initial load
+    (async () => {
+      await ensureAuth();
+      await loadTenants();
+      await loadTodos();
+    })();
+  </script>
+</body>
+</html>
