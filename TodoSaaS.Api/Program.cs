@@ -9,7 +9,10 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.FeatureManagement;
 using Microsoft.IdentityModel.Tokens;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Prometheus;
 using Scalar.AspNetCore;
 using Sentry;
@@ -144,9 +147,28 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
 builder.Services.AddScoped<IFileStorageService, S3FileStorageService>();
 
 // 7. Email, Billing & Auth Services
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IBillingService, StripeBillingService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddSingleton<ITokenService, JwtTokenService>();
+builder.Services.AddFeatureManagement();
+
+// 15. OpenTelemetry Distributed Tracing (W3C standard)
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("TodoSaaS.Api", serviceVersion: "1.0.0"))
+    .WithTracing(tracing =>
+    {
+        tracing
+            .AddAspNetCoreInstrumentation(opts => opts.RecordException = true)
+            .AddHttpClientInstrumentation();
+
+        var otlpEndpoint = builder.Configuration["OpenTelemetry:OtlpEndpoint"];
+        if (!string.IsNullOrEmpty(otlpEndpoint))
+        {
+            tracing.AddOtlpExporter(opts => opts.Endpoint = new Uri(otlpEndpoint));
+        }
+    });
 
 // 8. Multi-Tenancy Context
 builder.Services.AddScoped<ITenantContext, TenantContext>();
@@ -557,7 +579,7 @@ app.MapGet("/api/todos/{id:guid}", async (Guid id, AppDbContext db) =>
     return todo is not null ? Results.Ok(todo) : Results.NotFound();
 }).RequireAuthorization();
 
-app.MapPost("/api/todos", async (TodoCreateDto dto, AppDbContext db, IPublishEndpoint publishEndpoint, ITenantContext tenantContext, ICacheService cache) =>
+app.MapPost("/api/todos", async (TodoCreateDto dto, AppDbContext db, IPublishEndpoint publishEndpoint, ITenantContext tenantContext, ICacheService cache, IAuditService auditService) =>
 {
     if (string.IsNullOrWhiteSpace(dto.Title))
     {
@@ -600,6 +622,9 @@ app.MapPost("/api/todos", async (TodoCreateDto dto, AppDbContext db, IPublishEnd
     // Invalidate tenant todos cache
     await cache.InvalidateVersionAsync($"tenant:{tenantContext.TenantId}:todos:version");
 
+    // SOC 2 Audit Trail
+    await auditService.RecordAsync("todo.created", "TodoItem", todo.Id.ToString(), new { todo.Title });
+
     return Results.Created($"/api/todos/{todo.Id}", todo);
 }).RequireAuthorization();
 
@@ -636,7 +661,7 @@ app.MapPut("/api/todos/{id:guid}", async (Guid id, TodoUpdateDto dto, AppDbConte
     return Results.Ok(todo);
 }).RequireAuthorization();
 
-app.MapDelete("/api/todos/{id:guid}", async (Guid id, AppDbContext db, ICacheService cache, ITenantContext tenantContext) =>
+app.MapDelete("/api/todos/{id:guid}", async (Guid id, AppDbContext db, ICacheService cache, ITenantContext tenantContext, IAuditService auditService) =>
 {
     var todo = await db.Todos.FirstOrDefaultAsync(t => t.Id == id);
     if (todo is null) return Results.NotFound();
@@ -645,10 +670,13 @@ app.MapDelete("/api/todos/{id:guid}", async (Guid id, AppDbContext db, ICacheSer
     await db.SaveChangesAsync();
     await cache.InvalidateVersionAsync($"tenant:{tenantContext.TenantId}:todos:version");
 
+    // SOC 2 Audit Trail
+    await auditService.RecordAsync("todo.deleted", "TodoItem", id.ToString());
+
     return Results.NoContent();
 }).RequireAuthorization();
 
-app.MapPost("/api/todos/{id:guid}/complete", async (Guid id, AppDbContext db, IPublishEndpoint publishEndpoint, ITenantContext tenantContext, ICacheService cache) =>
+app.MapPost("/api/todos/{id:guid}/complete", async (Guid id, AppDbContext db, IPublishEndpoint publishEndpoint, ITenantContext tenantContext, ICacheService cache, IAuditService auditService) =>
 {
     var todo = await db.Todos.FirstOrDefaultAsync(t => t.Id == id);
     if (todo is null) return Results.NotFound();
@@ -661,6 +689,9 @@ app.MapPost("/api/todos/{id:guid}/complete", async (Guid id, AppDbContext db, IP
     await db.SaveChangesAsync();
 
     await cache.InvalidateVersionAsync($"tenant:{tenantContext.TenantId}:todos:version");
+
+    // SOC 2 Audit Trail
+    await auditService.RecordAsync("todo.completed", "TodoItem", todo.Id.ToString());
 
     return Results.Ok(todo);
 }).RequireAuthorization();
@@ -717,7 +748,7 @@ app.MapPost("/api/billing/portal", async (string stripeCustomerId, string return
 }).RequireAuthorization();
 
 // Instant plan simulation for demo, onboarding, and local testing
-app.MapPost("/api/billing/simulate-upgrade", async (SimulateUpgradeDto dto, AppDbContext db, ITenantContext tenantContext, ICacheService cache) =>
+app.MapPost("/api/billing/simulate-upgrade", async (SimulateUpgradeDto dto, AppDbContext db, ITenantContext tenantContext, ICacheService cache, IAuditService auditService) =>
 {
     var tenant = await db.Tenants.FindAsync(tenantContext.TenantId);
     if (tenant is null) return Results.NotFound();
@@ -732,6 +763,9 @@ app.MapPost("/api/billing/simulate-upgrade", async (SimulateUpgradeDto dto, AppD
 
     await db.SaveChangesAsync();
     await cache.RemoveAsync($"tenant:{tenantContext.TenantId}:info");
+
+    // SOC 2 Audit Trail
+    await auditService.RecordAsync("tenant.upgraded", "Tenant", tenant.Id.ToString(), new { TargetPlan = targetPlan });
 
     return Results.Ok(new
     {
@@ -752,5 +786,23 @@ app.MapPost("/api/billing/webhook", async (HttpRequest request, IBillingService 
     await billingService.HandleWebhookEventAsync(json, signature);
     return Results.Ok();
 }).AllowAnonymous();
+
+// --- MODERN ARCHITECTURE: FEATURE FLAGS (OPENFEATURE COMPLIANT) ---
+app.MapGet("/api/features", async (IFeatureManager featureManager) =>
+{
+    var features = new Dictionary<string, bool>();
+    await foreach (var name in featureManager.GetFeatureNamesAsync())
+    {
+        features[name] = await featureManager.IsEnabledAsync(name);
+    }
+    return Results.Ok(features);
+}).AllowAnonymous();
+
+// --- MODERN ARCHITECTURE: IMMUTABLE AUDIT LOGS (SOC 2 / HIPAA COMPLIANT) ---
+app.MapGet("/api/audit-logs", async (int? page, int? pageSize, IAuditService auditService) =>
+{
+    var logs = await auditService.GetLogsAsync(page ?? 1, pageSize ?? 50);
+    return Results.Ok(logs);
+}).RequireAuthorization();
 
 app.Run();

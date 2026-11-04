@@ -458,3 +458,41 @@ dotnet test
 | **Mailpit (Local SMTP)** | [http://localhost:8025](http://localhost:8025) | Local inbox for email events |
 | **Grafana Monitoring** | [http://localhost:3000](http://localhost:3000) | `admin` / `admin` |
 | **MinIO S3 Console** | [http://localhost:9001](http://localhost:9001) | `minioadmin` / `minioadmin` |
+| **Jaeger Distributed Tracing** | [http://localhost:16686](http://localhost:16686) | Visual flame graphs & OTLP spans |
+
+---
+
+## 7. The 7 Modern Software Engineering Standards Implemented
+
+This project implements all 7 advanced software engineering disciplines expected in high-performing distributed engineering teams:
+
+### 1. Distributed Tracing (W3C OpenTelemetry Standard)
+- End-to-end distributed tracing across HTTP requests, EF Core SQL queries, MassTransit message bus, and external APIs.
+- Integrated with Jaeger UI (`http://localhost:16686`) via standard OTLP protocol.
+
+### 2. Immutable Audit Trails (SOC 2 Type II / HIPAA Ready)
+- Dedicated append-only `AuditLogs` table and `IAuditService`.
+- Captures `ActorId`, `ActorEmail`, `Action`, `EntityName`, `EntityId`, JSON changes diff, IP address, and UTC timestamp.
+- Protected by multi-tenant global query filters and exposed via `GET /api/audit-logs`.
+
+### 3. Feature Flags & Progressive Delivery (OpenFeature)
+- Standardized Microsoft Feature Management abstraction (`Microsoft.FeatureManagement.AspNetCore`).
+- Decouples deployment from feature release with dark launches and kill-switches (`GET /api/features`).
+
+### 4. Architecture Fitness Tests (NetArchTest)
+- Automated unit tests asserting architectural boundaries:
+  - Domain models cannot depend on Data persistence layer.
+  - Multi-tenant entities must implement `IMustHaveTenant`.
+  - Consumers must reside in `Consumers` namespace.
+  - Enforced in CI/CD pipeline on every commit.
+
+### 5. GitOps & Progressive Canary Deployments
+- `gitops/argocd-app.yaml`: Automated declarative Kubernetes deployment synchronizing directly from GitHub.
+- `gitops/rollout.yaml`: Argo Rollouts Canary manifest routing 5% -> 20% -> 50% -> 100% traffic with automated Prometheus metric analysis for rollbacks.
+
+### 6. Zero-Trust Secret Management
+- `k8s/external-secret.yaml`: Kubernetes ExternalSecrets connecting to HashiCorp Vault / AWS Secrets Manager with 30-day automated credential rotation.
+
+### 7. One-Click Dev Environment (Dev Containers & Codespaces)
+- `.devcontainer/devcontainer.json`: 1-click cloud developer environment for VS Code and GitHub Codespaces with .NET 9, Docker-in-Docker, and pre-configured extensions.
+

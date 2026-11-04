@@ -1,0 +1,26 @@
+{
+  "name": "TodoSaaS Production Dev Environment",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:1-9.0",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "enableMoby": true
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "dotnet.defaultSolution": "TodoSaaS.sln",
+        "omnisharp.enableRoslynAnalyzers": true
+      },
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp",
+        "ms-azuretools.vscode-docker",
+        "humao.rest-client"
+      ]
+    }
+  },
+  "forwardPorts": [8080, 8085, 3000, 16686, 15672, 8025, 9001],
+  "postCreateCommand": "docker compose up -d && export PATH=$HOME/.dotnet:$PATH && dotnet restore"
+}

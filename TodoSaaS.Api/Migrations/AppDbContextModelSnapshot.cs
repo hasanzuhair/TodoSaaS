@@ -190,6 +190,54 @@ namespace TodoSaaS.Api.Migrations
                     b.ToTable("OutboxState");
                 });
 
+            modelBuilder.Entity("TodoSaaS.Api.Models.AuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ActorEmail")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ActorId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ChangesJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EntityId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("TimestampUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "TimestampUtc");
+
+                    b.ToTable("AuditLogs");
+                });
+
             modelBuilder.Entity("TodoSaaS.Api.Models.ProcessedWebhookEvent", b =>
                 {
                     b.Property<string>("Id")

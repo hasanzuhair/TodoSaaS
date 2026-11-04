@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<TodoItem> Todos => Set<TodoItem>();
     public DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents => Set<ProcessedWebhookEvent>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -36,9 +37,16 @@ public class AppDbContext : DbContext
         builder.Entity<TodoItem>()
                .HasQueryFilter(t => t.TenantId == _tenantContext.TenantId);
 
+        // Multi-tenant audit trail query filter
+        builder.Entity<AuditLog>()
+               .HasQueryFilter(a => a.TenantId == _tenantContext.TenantId);
+
         // Indexes for performance
         builder.Entity<TodoItem>()
                .HasIndex(t => new { t.TenantId, t.IsCompleted });
+
+        builder.Entity<AuditLog>()
+               .HasIndex(a => new { a.TenantId, a.TimestampUtc });
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

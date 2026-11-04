@@ -43,3 +43,19 @@ public class ProcessedWebhookEvent
     public string EventType { get; set; } = string.Empty;
     public DateTime ProcessedAtUtc { get; set; } = DateTime.UtcNow;
 }
+
+// Immutable SOC 2 / HIPAA Audit Log Trail
+public class AuditLog : IMustHaveTenant
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+    public string ActorId { get; set; } = string.Empty;
+    public string ActorEmail { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty; // e.g. "todo.created", "todo.deleted", "tenant.upgraded"
+    public string EntityName { get; set; } = string.Empty;
+    public string EntityId { get; set; } = string.Empty;
+    public string? ChangesJson { get; set; }
+    public string? IpAddress { get; set; }
+    public string? UserAgent { get; set; }
+    public DateTime TimestampUtc { get; set; } = DateTime.UtcNow;
+}

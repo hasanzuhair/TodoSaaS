@@ -38,6 +38,7 @@ services:
       - Email__Host=mailpit
       - Email__Port=1025
       - Email__Sender=noreply@todosass.com
+      - OpenTelemetry__OtlpEndpoint=http://jaeger:4317
     ports:
       - "8080:8080"
     depends_on:
@@ -168,6 +169,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  # 11. Distributed Tracing (OpenTelemetry & Jaeger)
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: todosaas-jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
 
 volumes:
   pgdata:
