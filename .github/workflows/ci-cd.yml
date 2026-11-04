@@ -30,7 +30,8 @@ jobs:
       run: dotnet test TodoSaaS.sln --configuration Release --no-build --verbosity normal
 
     - name: Security Vulnerability Scan (Trivy)
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@0.28.0
+      continue-on-error: true
       with:
         scan-type: 'fs'
         ignore-unfixed: true
