@@ -29,13 +29,8 @@ jobs:
     - name: Run Unit & Integration Tests
       run: dotnet test TodoSaaS.sln --configuration Release --no-build --verbosity normal
 
-    - name: Security Vulnerability Scan (Trivy)
-      uses: aquasecurity/trivy-action@0.28.0
-      continue-on-error: true
-      with:
-        scan-type: 'fs'
-        ignore-unfixed: true
-        severity: 'CRITICAL,HIGH'
+    - name: Security Vulnerability Scan (.NET Audit)
+      run: dotnet list package --vulnerable --include-transitive
 
   docker-publish:
     name: Build & Push Docker Image
