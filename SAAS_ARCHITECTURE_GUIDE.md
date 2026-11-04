@@ -20,6 +20,8 @@
    - [Phase 8: Frontend UI & Self-Serve Onboarding](#phase-8-frontend-ui--self-serve-onboarding)
 5. [Adapting This Architecture to Other Domains](#5-adapting-this-architecture-to-other-domains)
 6. [Operational Runbook & Quick Commands](#6-operational-runbook--quick-commands)
+7. [The 7 Modern Software Engineering Standards](#7-the-7-modern-software-engineering-standards)
+8. [Multi-Environment Lifecycle (Dev, Staging, Production)](#8-multi-environment-lifecycle-dev-staging-production)
 
 ---
 
@@ -495,4 +497,110 @@ This project implements all 7 advanced software engineering disciplines expected
 
 ### 7. One-Click Dev Environment (Dev Containers & Codespaces)
 - `.devcontainer/devcontainer.json`: 1-click cloud developer environment for VS Code and GitHub Codespaces with .NET 9, Docker-in-Docker, and pre-configured extensions.
+
+---
+
+## 8. Multi-Environment Lifecycle (Dev, Staging, Production)
+
+A reliable enterprise SaaS must maintain strict isolation between environments while preserving configuration parity. This architecture utilizes a 3-tier lifecycle:
+
+```
+[ Developer Machine / DevContainer ]
+        |
+        v  (git push)
+[ GitHub Actions CI Pipeline ]
+   ├─ Build Release
+   ├─ NetArchTest (12 Rules)
+   ├─ Vulnerability Audit
+   └─ Publish Docker Image to GHCR
+        |
+        +-----------------------+
+        |                       |
+        v                       v
+[ Staging Environment ]   [ Production Environment ]
+ - Namespace: todosaas-staging    - Namespace: todosaas-production
+ - 2 Replicas                    - 5 Replicas + HPA (2 to 10)
+ - Sandbox PostgreSQL & Redis     - Aurora Multi-AZ & Redis HA
+ - Mailpit Mock SMTP             - Resend Production SMTP
+ - Mock Billing Sandbox           - Live Stripe Webhooks
+ - Fast Feedback Verification    - Argo Rollouts Canary (5% -> 100%)
+```
+
+### 1. Configuration Parity via ASPNETCORE_ENVIRONMENT
+The solution defines three distinct environment configuration files in `TodoSaaS.Api`:
+- `appsettings.json` / `appsettings.Development.json`: Local development defaults pointing to localhost and Docker network names.
+- `appsettings.Staging.json`: Configured with staging database endpoints, synthetic test credentials, and permissive logging.
+- `appsettings.Production.json`: Configured with minimal logging, strict security headers, real Stripe live keys injected at runtime, and production S3 storage endpoints.
+
+### 2. Kustomize Multi-Environment Overlays
+Kubernetes deployments are structured with Kustomize overlays in `k8s/overlays/`:
+
+#### Staging Overlay (`k8s/overlays/staging/kustomization.yaml`)
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: todosaas-staging
+resources:
+  - ../../deployment.yaml
+  - ../../external-secret.yaml
+namePrefix: staging-
+patches:
+  - target:
+      kind: Deployment
+      name: todosaas-api
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+      - op: add
+        path: /spec/template/spec/containers/0/env
+        value:
+          - name: ASPNETCORE_ENVIRONMENT
+            value: "Staging"
+```
+
+#### Production Overlay (`k8s/overlays/production/kustomization.yaml`)
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: todosaas-production
+resources:
+  - ../../deployment.yaml
+  - ../../external-secret.yaml
+namePrefix: prod-
+patches:
+  - target:
+      kind: Deployment
+      name: todosaas-api
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 5
+      - op: add
+        path: /spec/template/spec/containers/0/env
+        value:
+          - name: ASPNETCORE_ENVIRONMENT
+            value: "Production"
+```
+
+### 3. Deploying Environments via CLI
+
+#### To Staging:
+```bash
+kubectl apply -k k8s/overlays/staging
+```
+
+#### To Production:
+```bash
+kubectl apply -k k8s/overlays/production
+```
+
+### 4. Continuous GitOps Reconciliation with ArgoCD
+The root `gitops/argocd-app.yaml` continuously synchronizes state with GitHub:
+```bash
+kubectl apply -f gitops/argocd-app.yaml
+```
+
+ArgoCD detects commits to `main`, pulls the new container image from GitHub Container Registry (`ghcr.io/hasanzuhair/todosaas-api:latest`), and triggers the progressive canary rollout defined in `gitops/rollout.yaml`.
+
 
