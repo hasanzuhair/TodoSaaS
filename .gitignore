@@ -23,3 +23,9 @@ Thumbs.db
 
 # Test results
 TestResults/
+
+# Local Environment & Secrets
+.env
+*.env.local
+*.local.json
+
